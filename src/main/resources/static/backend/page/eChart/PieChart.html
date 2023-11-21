@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org" style="height: 100%">
+<head>
+  <meta charset="utf-8">
+  <title>echarts-pie</title>
+  <script src="https://cdn.bootcss.com/jquery/3.1.1/jquery.min.js"></script>
+  <script src="js/echarts.min.js"></script>
+</head>
+<body style="height: 100%; margin: 0">
+<div id="main" style="height: 100%"></div>
+<button onclick="generateExcel()">导出Excel文件</button>
+
+<script type="text/javascript">
+  function generateExcel() {
+    fetch('http://localhost:8080/backend/page/eChart/excel')
+            .then(response => response.json())
+            .then(data => {
+              const url = window.URL.createObjectURL(new Blob([data]));
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = '菜品销量.xlsx'; // 你可以根据需要设置文件名
+              a.click();
+            });
+  }
+  var mychart1 = echarts.init(document.getElementById('main'));
+
+  mychart1.setOption({
+    title: {
+      text: '菜品销量统计饼状图',
+      left: 'center'
+    },
+    tooltip: {
+      trigger: 'item'
+    },
+    legend: {
+      orient: 'vertical',
+      left: 'left'
+    },
+    series: [
+      {
+        name: 'Access From',
+        type: 'pie',
+        radius: '50%',
+        data: []
+      }],
+    emphasis: {
+      itemStyle: {
+        shadowBlur: 10,
+        shadowOffsetX: 0,
+        shadowColor: 'rgba(0, 0, 0, 0.5)'
+      }
+    }
+  });
+
+  mychart1.showLoading();
+
+  var names=[];
+  var nums=[];
+
+  $.ajax({
+    type : "get",
+    async : false,            //异步请求（同步请求将会锁住浏览器，用户其他操作必须等待请求完成才可以执行）
+    url : "list",    //请求发送到TestServlet处
+    data : {},
+    dataType : "json",        //返回数据形式为json
+    success : function(result) {
+      //请求成功时执行该函数内容，result即为服务器返回的json对象
+      var data = result.data;
+      if (data) {
+        for(var i=0;i<data.length;i++){
+          names.push(data[i].name);    //挨个取出类别并填入类别数组
+          nums[i] = {value: data[i].count,name:data[i].name};
+        }
+        /*          for(var i=0;i<data.length;i++){
+                    nums.push(data[i].count);    //挨个取出销量并填入销量数组
+                  }*/
+        mychart1.hideLoading();    //隐藏加载动画
+        mychart1.setOption({        //加载数据图表
+          series: {
+            type: 'pie',
+            radius: '55%',
+            center: ['50%','60%'],
+            data: nums,
+            emphasis: {
+              itemStyle: {
+                shadowBlur: 10,
+                shadowOffsetX: 0,
+                shadowColor: 'rgb(0,0,0,0.5)'
+              }
+            }
+          },
+        });
+      }
+    },
+    error : function() {
+      //请求失败时执行该函数
+      alert("图表请求数据失败!");
+      mychart1.hideLoading();
+    }
+  })
+
+  window.addEventListener('resize', mychart1.resize);
+</script>
+</body>
+</html>
